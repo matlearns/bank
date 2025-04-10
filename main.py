@@ -66,22 +66,33 @@ class Account:
             if not deposit_amount:
                 raise ValueError("The field must filled with proper ac number.")
             
-            #to get the stored money
-            check_old_saving = "SELECT saving FROM customer_info WHERE account_no = %s"
+            #fetch all credit
+            check_cr = "SELECT Cr FROM a_customer_info WHERE account_no = %s"
             value = (account_no, )
-            self.mycursor.execute(check_old_saving, value)
-            result = self.mycursor.fetchone() # yo note garne
-            if result:
-                old_saving = float(result[0]) #yo note garne: yatti nagare Tuple aayera hairaan
-                #stored money is updated with new saving
-                updated_amount = deposit_amount + old_saving
+            self.mycursor.execute(check_cr, value)
+            all_cr = self.mycursor.fetchall()
+            total_cr = 0
+            for x in all_cr:
+                total_cr += x[0] #yo note garne
+           
+            #fetch all credit
+            check_dr = "SELECT Dr FROM a_customer_info WHERE account_no = %s"
+            value = (account_no, )
+            self.mycursor.execute(check_dr, value)
+            all_dr = self.mycursor.fetchall()
+            total_dr = 0
+            for x in all_dr:
+                total_dr += x[0] #yo note garne
+           
+            current_saving = float(total_cr - total_dr)
+           
+            sql = "UPDATE a_customer_info SET Cr = %s, Dr = 0 WHERE account_no = %s"
+            values= (deposit_amount, account_no)
 
-
-            sql = "UPDATE customer_info SET saving = %s WHERE account_no = %s"
-            values = (updated_amount, account_no)
             self.mycursor.execute(sql, values)
             self.mydb.commit()
-            print(f"Successfully NRs. {deposit_amount} deposited to account # {account_no}.")
+            print(f"Successfully NRs. {deposit_amount} deposited to account # {account_no}. Your updated balance is NRs. {current_saving+deposit_amount}.")
+        
         except Exception as e:
             print(f"Fix the error {e}")
             self.mydb.rollback()
@@ -91,37 +102,59 @@ class Account:
             account_no = int(input("Input account: "))
             if not account_no:
                 raise ValueError("The field must filled with proper ac number.")
-            withdraw_amount = float(input("Amount to save: "))
+            withdraw_amount = float(input("Amount to withdraw: "))
             if not withdraw_amount:
                 raise ValueError("The field must filled with proper ac number.")
             
-            #to get the stored money
-            check_old_saving = "SELECT saving FROM customer_info WHERE account_no = %s"
+            #fetch all credit
+            check_cr = "SELECT Cr FROM a_customer_info WHERE account_no = %s"
             value = (account_no, )
-            self.mycursor.execute(check_old_saving, value)
-            result = self.mycursor.fetchone() # yo note garne
-            if result:
-                old_saving = float(result[0]) #yo note garne: yatti nagare Tuple aayera hairaan
-                #stored money is updated with new saving
-                if old_saving >= withdraw_amount:
-                    updated_amount = old_saving - withdraw_amount
-                    sql = "UPDATE customer_info SET saving = %s WHERE account_no = %s"
-                    values = (updated_amount, account_no)
-                    self.mycursor.execute(sql, values)
-                    self.mydb.commit()
-                    print(f"Successfully NRs. {withdraw_amount} withdrawed from account # {account_no}.")
-                else:
-                    raise ValueError("Insufficient balance. Paisaa na kaudi, Campus Chowk daudi.")
+            self.mycursor.execute(check_cr, value)
+            all_cr = self.mycursor.fetchall()
+            total_cr = 0
+            for x in all_cr:
+                total_cr += x[0] #yo note garne
+           
+            #fetch all credit
+            check_dr = "SELECT Dr FROM a_customer_info WHERE account_no = %s"
+            value = (account_no, )
+            self.mycursor.execute(check_dr, value)
+            all_dr = self.mycursor.fetchall()
+            total_dr = 0
+            for x in all_dr:
+                total_dr += x[0] #yo note garne
+           
+            current_saving = float(total_cr - total_dr)
+
+            if current_saving >= withdraw_amount:
+                sql = "UPDATE a_customer_info SET Dr = %s, Cr = 0 WHERE account_no = %s" #yahaa Cr = 0  set gardaa individual transaction create hunchha, natra khaali dr maa update hunchha
+                values= (withdraw_amount, account_no)
+
+                self.mycursor.execute(sql, values)
+                self.mydb.commit()
+                print(f"Successfully NRs. {withdraw_amount} withdrew from to account # {account_no}. Your updated balance is NRs. {current_saving-withdraw_amount}.")
+            else:
+                raise ValueError("Insufficient balance.")
         except Exception as e:
             print(f"Fix the error {e}")
-            self.mydb.rollback()    
-        
+            self.mydb.rollback()
+
+    def transaction_statement(self):
+        print("Yasko kaam garna baanki")
+        account_number = input("Account Number: ")
+        sql = "SELECT date_and_time, Cr, Dr FROM a_customer_info WHERE account_no = %s"
+        value = (account_number, ) #it must be tuple
+        self.mycursor.execute(sql, value)
+        result = self.mycursor.fetchall()
+        for i in result:
+            print(i)
+    
     def close_connection(self):
         self.mycursor.close()
         self.mydb.close()
 
 account = Account()
-action = int(input("Select 1 or 2 or 3 for new account opening, existing account update, and check account information: "))
+action = int(input("Select 1 or 2 or 3 or 4 or 5 or 6 for new account opening, existing account update, check account information, deposit, withdraw, and view statement: "))
 if action == 1:
     account.open_account()
 elif action == 2: 
@@ -131,7 +164,9 @@ elif action == 3:
 elif action == 4:
     account.deposit()
 elif action == 5:
-    account.withdraw()    
+    account.withdraw()
+elif action == 6:
+    account.transaction_statement()        
 else:
     raise ValueError("Enter proper number.")
 account.close_connection()
