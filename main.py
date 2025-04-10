@@ -140,7 +140,7 @@ class Account:
             self.mydb.rollback()
 
     def transaction_statement(self):
-        print("Yasko kaam garna baanki")
+        print("Yasko kaam garna baanki chha: ")
         account_number = input("Account Number: ")
         sql = "SELECT date_and_time, Cr, Dr FROM a_customer_info WHERE account_no = %s"
         value = (account_number, ) #it must be tuple
